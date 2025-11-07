@@ -73,7 +73,7 @@ export default function useCommandBarActions() {
           : 'search-actions',
       }))
     const actions = data?.actions ?? []
-    return groupOptions.concat(
+    const allOptions = groupOptions.concat(
       actions
         .filter(action => action.status && action.status !== 'OFFLINE')
         .map(action => {
@@ -91,6 +91,12 @@ export default function useCommandBarActions() {
           }
         })
     )
+    // filter out options where there parent is missing
+    const allIds = new Set(allOptions.map(o => o.id))
+    const filteredOptions = allOptions.filter(o =>
+      o.parent ? allIds.has(o.parent) : true
+    )
+    return filteredOptions
   }, [data, basePath])
 
   const mostUsedActions = useMemo(() => {
