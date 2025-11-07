@@ -124,3 +124,5 @@ Starts Interval Server. See above for information on running Interval Server loc
 ## Contributing
 
 For our initial release, we're focused on making it easy to setup and run your own Interval Server instance. We'll make it easier to contribute (and document how you can) in the future, but for now we aren't actively soliciting new contributions.
+
+✨
