@@ -240,7 +240,9 @@ export default function useCommandBarActions() {
   // filter out options where the parent is not in the list of all actions
   const allIds = new Set(allActions.map(o => o.id))
   const filteredActions = allActions.filter(o =>
-    'parent' in o && o.parent ? allIds.has(o.parent) : true
+    'parent' in o && o.parent && o.parent !== 'search-actions'
+      ? allIds.has(o.parent)
+      : true
   )
 
   useRegisterActions(filteredActions, [
