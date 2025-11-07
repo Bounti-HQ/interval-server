@@ -73,7 +73,7 @@ export default function useCommandBarActions() {
           : 'search-actions',
       }))
     const actions = data?.actions ?? []
-    const allOptions = groupOptions.concat(
+    return groupOptions.concat(
       actions
         .filter(action => action.status && action.status !== 'OFFLINE')
         .map(action => {
@@ -91,12 +91,6 @@ export default function useCommandBarActions() {
           }
         })
     )
-    // filter out options where there parent is missing
-    const allIds = new Set(allOptions.map(o => o.id))
-    const filteredOptions = allOptions.filter(o =>
-      o.parent ? allIds.has(o.parent) : true
-    )
-    return filteredOptions
   }, [data, basePath])
 
   const mostUsedActions = useMemo(() => {
@@ -126,132 +120,137 @@ export default function useCommandBarActions() {
     envSlug,
   })
 
-  useRegisterActions(
-    [
-      ...mostUsedActions.map((action, i) => ({
-        id: `most-used-action-${i}`,
-        name: action.name ?? action.slug,
+  const allActions = [
+    ...mostUsedActions.map((action, i) => ({
+      id: `most-used-action-${i}`,
+      name: action.name ?? action.slug,
+      perform: () => {
+        if (action.link) {
+          navigate(action.link)
+        }
+      },
+      subtitle: action.subtitle,
+      section: 'Commonly used actions',
+    })),
+    {
+      id: 'actions',
+      name: 'Dashboard',
+      perform: () => {
+        navigate(basePath)
+      },
+      shortcut: ['g', 'h'],
+      section: 'Navigation',
+    },
+    ...topLevelGroups.map((group, i) => ({
+      id: `top-level-group-${i}`,
+      name: group.name,
+      perform: () => {
+        navigate(group.link)
+      },
+      section: 'Navigation',
+    })),
+    ...searchOptions.map(action => ({
+      id: action.id,
+      name: action.name ?? getBaseSlug(action.slug),
+      perform: () => {
+        if (action.link) {
+          navigate(action.link)
+        }
+      },
+      subtitle: action.subtitle,
+      parent: action.parent,
+      keywords: [...action.slug.split('/'), action.name ?? ''].join(' '),
+    })),
+    ...envOptions
+      .filter(env => !env.isCurrent)
+      .map(env => ({
+        id: `env-${env.path}`,
+        name: `Switch to ${env.name} environment`,
         perform: () => {
-          if (action.link) {
-            navigate(action.link)
-          }
+          // for type safety, only possible on pages without a slug that redirect
+          if (!orgEnvSlug || !orgSlug) return
+          switchToEnvironment(env.path)
         },
-        subtitle: action.subtitle,
-        section: 'Commonly used actions',
+        section: 'Environments',
       })),
-      {
-        id: 'actions',
-        name: 'Dashboard',
-        perform: () => {
-          navigate(basePath)
-        },
-        shortcut: ['g', 'h'],
-        section: 'Navigation',
-      },
-      ...topLevelGroups.map((group, i) => ({
-        id: `top-level-group-${i}`,
-        name: group.name,
-        perform: () => {
-          navigate(group.link)
-        },
-        section: 'Navigation',
+    ...otherOrgs
+      .filter(org => !org.isCurrent)
+      .map(org => ({
+        id: `org-${org.slug}`,
+        name: `Switch to ${org.name} organization`,
+        perform: () => window.location.assign(`/dashboard/${org.slug}`),
+        section: 'Organizations',
       })),
-      ...searchOptions.map(action => ({
-        id: action.id,
-        name: action.name ?? getBaseSlug(action.slug),
-        perform: () => {
-          if (action.link) {
-            navigate(action.link)
-          }
-        },
-        subtitle: action.subtitle,
-        parent: action.parent,
-        keywords: [...action.slug.split('/'), action.name ?? ''].join(' '),
-      })),
-      ...envOptions
-        .filter(env => !env.isCurrent)
-        .map(env => ({
-          id: `env-${env.path}`,
-          name: `Switch to ${env.name} environment`,
-          perform: () => {
-            // for type safety, only possible on pages without a slug that redirect
-            if (!orgEnvSlug || !orgSlug) return
-            switchToEnvironment(env.path)
-          },
-          section: 'Environments',
-        })),
-      ...otherOrgs
-        .filter(org => !org.isCurrent)
-        .map(org => ({
-          id: `org-${org.slug}`,
-          name: `Switch to ${org.name} organization`,
-          perform: () => window.location.assign(`/dashboard/${org.slug}`),
-          section: 'Organizations',
-        })),
-      {
-        id: 'settings',
-        name: 'Settings',
-        shortcut: ['g', 's'],
-        section: 'Interval',
+    {
+      id: 'settings',
+      name: 'Settings',
+      shortcut: ['g', 's'],
+      section: 'Interval',
+    },
+    {
+      id: 'account-settings',
+      name: 'Account settings',
+      perform: () => {
+        navigate(`/dashboard/${orgSlug}/account`)
       },
-      {
-        id: 'account-settings',
-        name: 'Account settings',
-        perform: () => {
-          navigate(`/dashboard/${orgSlug}/account`)
-        },
-        parent: 'settings',
+      parent: 'settings',
+    },
+    {
+      id: 'organization-settings',
+      name: 'Organization settings',
+      perform: () => {
+        navigate(`/dashboard/${orgSlug}/organization/settings`)
       },
-      {
-        id: 'organization-settings',
-        name: 'Organization settings',
-        perform: () => {
-          navigate(`/dashboard/${orgSlug}/organization/settings`)
-        },
-        parent: 'settings',
+      parent: 'settings',
+    },
+    {
+      id: 'users',
+      name: 'Users',
+      perform: () => {
+        navigate(`/dashboard/${orgSlug}/organization/users`)
       },
-      {
-        id: 'users',
-        name: 'Users',
-        perform: () => {
-          navigate(`/dashboard/${orgSlug}/organization/users`)
-        },
-        parent: 'settings',
+      parent: 'settings',
+    },
+    {
+      id: 'teams',
+      name: 'Teams',
+      perform: () => {
+        navigate(`/dashboard/${orgSlug}/organization/teams`)
       },
-      {
-        id: 'teams',
-        name: 'Teams',
-        perform: () => {
-          navigate(`/dashboard/${orgSlug}/organization/teams`)
-        },
-        parent: 'settings',
+      parent: 'settings',
+    },
+    {
+      id: 'history',
+      name: 'History',
+      perform: () => {
+        navigate(`/dashboard/${orgSlug}/transactions`)
       },
-      {
-        id: 'history',
-        name: 'History',
-        perform: () => {
-          navigate(`/dashboard/${orgSlug}/transactions`)
-        },
-        parent: 'settings',
+      parent: 'settings',
+    },
+    {
+      id: 'docs',
+      name: 'Documentation',
+      perform: () => {
+        window.open('https://interval.com/docs', '_blank')
       },
-      {
-        id: 'docs',
-        name: 'Documentation',
-        perform: () => {
-          window.open('https://interval.com/docs', '_blank')
-        },
-        section: 'Interval',
-      },
-    ],
-    [
-      mostUsedActions,
-      searchOptions,
-      organization.environments,
-      navigate,
-      envSlug,
-      orgSlug,
-      orgEnvSlug,
-      otherOrgs,
-    ]
+      section: 'Interval',
+    },
+  ]
+
+  // filter out options where the parent is not in the list of all actions
+  const allIds = new Set(allActions.map(o => o.id))
+  const filteredActions = allActions.filter(o =>
+    'parent' in o && o.parent ? allIds.has(o.parent) : true
   )
+
+  useRegisterActions(filteredActions, [
+    mostUsedActions,
+    searchOptions,
+    organization.environments,
+    navigate,
+    envSlug,
+    orgSlug,
+    orgEnvSlug,
+    otherOrgs,
+  ])
 }
